@@ -3,9 +3,9 @@ using namespace std;
 
 //struct to hold the instruction details
 struct Instruction{
+    string opcode;
     string func3;
     string func7;
-    string opcode;
     string type;
 };
 
@@ -70,8 +70,108 @@ private:
         {"jal", {"1101111", "", "", "UJ"}}
     };
 
+    //function for generating R-type instructions
+    string generateRType(const Instruction &instr, const string &rd, const string &rs1, const string &rs2){
+        return instr.func7 + registerMap[rs2] + registerMap[rs1] + instr.func3 + registerMap[rd] + instr.opcode;
+    };
+
+    //function for generating I-type instructions
+    string generateIType(const Instruction &instr, const string &rd, const string &rs1, const int immediate){
+        //if immediate is out of bound then return error
+        if(immediate < -2048 || immediate > 2047){
+            return "Immediate out of bound";
+        }
+        return bitset<12>(immediate).to_string() + registerMap[rs1] + instr.func3 + registerMap[rd] + instr.opcode;
+    };
+
+    //function for generating S-type instructions
+    string generateSType(const Instruction &instr, const string &rs1, const string &rs2, const int offset){
+        //if offset is out of bound then return error
+        if(offset < -2048 || offset > 2047){
+            return "Offset out of bound";
+        }
+        string offsetStr = bitset<12>(offset).to_string();
+        return offsetStr.substr(0, 7) + registerMap[rs2] + registerMap[rs1] + instr.func3 + offsetStr.substr(7,5) + instr.opcode;
+    };
+    string generateSBType(const Instruction &instr, const string &rs1, const string &rs2, const int offset){
+        //to be implemented
+    };
+    string generateUType(const Instruction &instr, const string &rd, const int immediate){
+        //if immediate is out of bound then return error
+        //immediate's lower bound is set to 0 because -ve mem address do not exist
+        if(immediate < 0 || immediate > 1048575){
+            return "Immediate out of bound";
+        }
+        return bitset<20>(immediate).to_string() + registerMap[rd] + instr.opcode;
+    };
+    string generateUJType(const Instruction &instr, const string &rd, const int offset){
+        //to be implemented
+    };
+
 public:
 
+    string parseLine(const string &line){
+        stringstream ss(line);
+        string instruction;
+        string rd;
+        string rs1;
+        string rs2;
+        int immediate;
+
+        ss >> instruction;
+        if(instructionMap.find(instruction) == instructionMap.end()){
+            return "Invalid Instruction";
+        }
+        const Instruction &instr = instructionMap[instruction];
+
+        if (instr.type == "R") {
+            ss >> rd >> rs1 >> rs2;
+            rd.pop_back();
+            rs1.pop_back();
+            return generateRType(instr, rd, rs1, rs2);
+        } 
+        else if (instr.type == "I") {
+            ss >> rd >> rs1 >> immediate;
+            rd.pop_back();
+            rs1.pop_back();
+            return generateIType(instr, rd, rs1, immediate);
+        } 
+        else if (instr.type == "S") {
+            ss >> rs1 >> rs2 >> immediate;
+            rs1.pop_back();
+            rs2.pop_back();
+            return generateSType(instr, rs1, rs2, immediate);
+        } 
+        else if (instr.type == "SB") {
+            //to be implemented
+        } 
+        else if (instr.type == "U") {
+            ss >> rd >> immediate;
+            rd.pop_back();
+            return generateUType(instr, rd, immediate);
+        } 
+        else if (instr.type == "UJ") {
+            //to be implemented
+        } 
+        else {
+            return "Invalid Instruction";
+        }        
+
+        return "Something went wrong";
+    }
+
+    void parseFile(ifstream &inputFile, ofstream &outputFile){
+        vector<string> lines;
+        string line;
+        while(getline(inputFile, line)){
+            stringstream ss(line);
+            lines.push_back(line);
+        }
+        for(const auto &line:lines){
+            string machineCode = parseLine(line);
+            outputFile<<machineCode<<endl;
+        }
+    }
 };
 
 int main(){
@@ -80,5 +180,18 @@ int main(){
     ifstream inputFile("input.asm");
     ofstream outputFile("output.mc");
 
+    if(!inputFile){
+        cout<<"Error in opening the input file"<<endl;
+        return 0;
+    }
+    if(!outputFile){
+        cout<<"Error in opening the output file"<<endl;
+        return 0;
+    }
+    
+    assembler.parseFile(inputFile, outputFile);
+
+    inputFile.close();
+    outputFile.close();
     return 0;
 }
