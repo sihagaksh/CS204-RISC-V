@@ -1,6 +1,22 @@
 #include<bits/stdc++.h>
 using namespace std;
 
+//variables for address of instructions in .text and variables in .data respectively
+int programCounter = 0x00000000; //starting address of .text section
+int dataAddress = 0x10000000; //starting address of .data section
+
+//boolean for checking if we are in .data section
+bool dataMode = false;
+
+//Maps for storing address corresponding to labels
+unordered_map <string , int> labels;
+
+//map for storing memory addresses and the values stored at them
+unordered_map <string , int> dataLabels;
+
+//vector to store all the variable of data section
+vector <pair <int, string>> dataSegment;
+
 //struct to hold the instruction details
 struct Instruction{
     string opcode;
@@ -164,8 +180,97 @@ public:
         vector<string> lines;
         string line;
         while(getline(inputFile, line)){
+            if (line == ".data"){
+                dataMode = true;
+                continue;
+            }
+            if (line == ".text"){
+                dataMode = false;
+                continue;
+            }
+
             stringstream ss(line);
-            lines.push_back(line);
+            string word;
+            ss>>word;
+            if (word.back() == ':'){
+                word.pop_back();
+                if (dataMode){
+                    dataLabels[word] = dataAddress;
+                }
+                else{
+                    labels[word] = programCounter;
+                }
+                
+            }
+
+            if (dataMode){
+                if (word == ".word"){
+                    int val;
+                    while(ss>>val){
+                        dataSegment.push_back({dataAddress, to_string(val)});
+                        dataAddress += 4;
+                    }   
+                }
+                else if (word == ".byte"){
+                    string token;
+                    while (ss >> token) {
+                    int val;
+                    if (token[0] == '\'' && token.size() == 3 && token[2] == '\'') { 
+                        // Character case
+                        val = token[1];
+                    } else {
+                        try {
+                            val = stoi(token);
+                        } catch (...) {
+                            cout << "Invalid .byte value: " << token << endl;
+                            break;
+                        }
+                    }
+
+                    if (val < -128 || val > 127) {
+                        cout << "Value out of bound for .byte: " << val << endl;
+                        break;
+                    }
+
+                    dataSegment.push_back({dataAddress, to_string(val)});
+                    dataAddress += 1;
+                }   
+                }
+                else if (word == ".double"){
+                    int val;
+                    ss>>val;
+                    while(val){
+                        dataSegment.push_back({dataAddress, to_string(val)});
+                        dataAddress += 8;
+                        ss>>val;
+                    }   
+                }
+                else if (word == ".asciiz"){
+                    string str;
+                    ss>>str;
+                    if (str.size() >= 2 && str.front() == '"' && str.back() == '"') {
+                        str = str.substr(1, str.size() - 2);
+                    } else {
+                        cout << "Invalid .asciiz format. Must be enclosed in double quotes." << endl;
+                        continue;
+                    }
+                    
+                    for (char c : str) {
+                        dataSegment.push_back({dataAddress, std::to_string(c)});
+                        dataAddress++;
+                    }
+                    dataSegment.push_back({dataAddress, "0"}); // Null terminator
+                    dataAddress++;
+                }
+                continue;
+
+            }
+
+            //if the line is neither empty nor a comment
+            if(!line.empty() || line[0] != '#'){ 
+                lines.push_back(line);                
+            }
+
         }
         for(const auto &line:lines){
             string machineCode = parseLine(line);
