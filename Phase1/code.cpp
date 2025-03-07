@@ -8,6 +8,9 @@ long long dataAddress = 0x10000000; //starting address of .data section
 //boolean for checking if we are in .data section
 bool dataMode = false;
 
+//maintaining the current program counter which will help in the calculation of offset for branch instructions
+long long currentPC= 0x0000000;
+
 //Maps for storing address corresponding to labels
 unordered_map <string , long long> labels;
 
@@ -24,6 +27,31 @@ struct Instruction{
     string func7;
     string type;
 };
+
+string binaryToHex(string binCode){
+    string hexCode = "0x";
+    for(int i=0; i<binCode.size(); i+=4){
+        string hexDigit = binCode.substr(i, 4);
+        if(hexDigit == "0000") hexCode += "0";
+        else if(hexDigit == "0001") hexCode += "1";
+        else if(hexDigit == "0010") hexCode += "2";
+        else if(hexDigit == "0011") hexCode += "3";
+        else if(hexDigit == "0100") hexCode += "4";
+        else if(hexDigit == "0101") hexCode += "5";
+        else if(hexDigit == "0110") hexCode += "6";
+        else if(hexDigit == "0111") hexCode += "7";
+        else if(hexDigit == "1000") hexCode += "8";
+        else if(hexDigit == "1001") hexCode += "9";
+        else if(hexDigit == "1010") hexCode += "A";
+        else if(hexDigit == "1011") hexCode += "B";
+        else if(hexDigit == "1100") hexCode += "C";
+        else if(hexDigit == "1101") hexCode += "D";
+        else if(hexDigit == "1110") hexCode += "E";
+        else if(hexDigit == "1111") hexCode += "F";
+    }
+    return hexCode;
+
+}
 
 //class RiscVAssembler to be worked on
 class RiscVAssembler{
@@ -110,7 +138,8 @@ private:
         return offsetStr.substr(0, 7) + registerMap[rs2] + registerMap[rs1] + instr.func3 + offsetStr.substr(7,5) + instr.opcode;
     };
     string generateSBType(const Instruction &instr, const string &rs1, const string &rs2, const long long offset){
-        //to be implemented
+        string imm = bitset<13>(offset).to_string();
+        return imm[0] + imm.substr(2,6) + registerMap[rs2] + registerMap[rs1] + instr.func3 + imm.substr(8,4) + imm[1] + instr.opcode; 
     };
     string generateUType(const Instruction &instr, const string &rd, const long long immediate){
         //if immediate is out of bound then return error
@@ -121,7 +150,8 @@ private:
         return bitset<20>(immediate).to_string() + registerMap[rd] + instr.opcode;
     };
     string generateUJType(const Instruction &instr, const string &rd, const long long offset){
-        //to be implemented
+        string imm = bitset<21>(offset).to_string();
+        return imm[0] + imm.substr(10,10) + imm[9] + imm.substr(1,8) + registerMap[rd] + instr.opcode;
     };
 
 public:
@@ -159,7 +189,15 @@ public:
             return generateSType(instr, rs1, rs2, immediate);
         } 
         else if (instr.type == "SB") {
-            //to be implemented
+            string label;
+            ss>>rs1>>rs2>>label;
+            if(labels.find(label)==labels.end()){
+                return "Label not found";
+            }
+            rs1.pop_back();
+            rs2.pop_back();
+            long long offset = (labels[label] - currentPC)/2;
+            return generateSBType(instr, rs1, rs2, offset);
         } 
         else if (instr.type == "U") {
             ss >> rd >> immediate;
@@ -167,11 +205,18 @@ public:
             return generateUType(instr, rd, immediate);
         } 
         else if (instr.type == "UJ") {
-            //to be implemented
+            string label;
+            ss>>rd>>label;
+            if(labels.find(label)==labels.end()){
+                return "Label not found";
+            }
+            rd.pop_back();
+            long long offset = (labels[label] - currentPC)/2;
+            return generateUJType(instr, rd,offset);
         } 
         else {
             return "Invalid Instruction";
-        }        
+        }   
 
         return "Something went wrong";
     }
@@ -200,7 +245,7 @@ public:
                 else{
                     labels[word] = programCounter;
                 }
-                
+                continue;
             }
 
             if (dataMode){
@@ -267,15 +312,22 @@ public:
 
             }
 
+            //trim leading and trailing whitespaces
+            line.erase(line.find_last_not_of("\n\r\t")+1);
+            line.erase(0, line.find_first_not_of(" \n\r\t"));
+
             //if the line is neither empty nor a comment
-            if(!line.empty() || line[0] != '#'){ 
-                lines.push_back(line);                
+            if(!line.empty() && line[0] != '#'){ 
+                lines.push_back(line);  
+                programCounter += 4;              
             }
 
         }
+        //parse each line and write the machine code to the output file
         for(const auto &line:lines){
             string machineCode = parseLine(line);
-            outputFile<<machineCode<<endl;
+            outputFile<<binaryToHex(bitset<32>(currentPC).to_string()) <<" " << binaryToHex(machineCode) <<" "<< line <<" #"<<machineCode<<endl;
+            currentPC += 4;
         }
     }
 };
