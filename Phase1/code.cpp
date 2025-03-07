@@ -2,20 +2,20 @@
 using namespace std;
 
 //variables for address of instructions in .text and variables in .data respectively
-int programCounter = 0x00000000; //starting address of .text section
-int dataAddress = 0x10000000; //starting address of .data section
+long long programCounter = 0x00000000; //starting address of .text section
+long long dataAddress = 0x10000000; //starting address of .data section
 
 //boolean for checking if we are in .data section
 bool dataMode = false;
 
 //Maps for storing address corresponding to labels
-unordered_map <string , int> labels;
+unordered_map <string , long long> labels;
 
 //map for storing memory addresses and the values stored at them
-unordered_map <string , int> dataLabels;
+unordered_map <string , long long> dataLabels;
 
 //vector to store all the variable of data section
-vector <pair <int, string>> dataSegment;
+vector <pair <long long, string>> dataSegment;
 
 //struct to hold the instruction details
 struct Instruction{
@@ -92,7 +92,7 @@ private:
     };
 
     //function for generating I-type instructions
-    string generateIType(const Instruction &instr, const string &rd, const string &rs1, const int immediate){
+    string generateIType(const Instruction &instr, const string &rd, const string &rs1, const long long immediate){
         //if immediate is out of bound then return error
         if(immediate < -2048 || immediate > 2047){
             return "Immediate out of bound";
@@ -101,7 +101,7 @@ private:
     };
 
     //function for generating S-type instructions
-    string generateSType(const Instruction &instr, const string &rs1, const string &rs2, const int offset){
+    string generateSType(const Instruction &instr, const string &rs1, const string &rs2, const long long offset){
         //if offset is out of bound then return error
         if(offset < -2048 || offset > 2047){
             return "Offset out of bound";
@@ -109,10 +109,10 @@ private:
         string offsetStr = bitset<12>(offset).to_string();
         return offsetStr.substr(0, 7) + registerMap[rs2] + registerMap[rs1] + instr.func3 + offsetStr.substr(7,5) + instr.opcode;
     };
-    string generateSBType(const Instruction &instr, const string &rs1, const string &rs2, const int offset){
+    string generateSBType(const Instruction &instr, const string &rs1, const string &rs2, const long long offset){
         //to be implemented
     };
-    string generateUType(const Instruction &instr, const string &rd, const int immediate){
+    string generateUType(const Instruction &instr, const string &rd, const long long immediate){
         //if immediate is out of bound then return error
         //immediate's lower bound is set to 0 because -ve mem address do not exist
         if(immediate < 0 || immediate > 1048575){
@@ -120,7 +120,7 @@ private:
         }
         return bitset<20>(immediate).to_string() + registerMap[rd] + instr.opcode;
     };
-    string generateUJType(const Instruction &instr, const string &rd, const int offset){
+    string generateUJType(const Instruction &instr, const string &rd, const long long offset){
         //to be implemented
     };
 
@@ -132,7 +132,7 @@ public:
         string rd;
         string rs1;
         string rs2;
-        int immediate;
+        long long immediate;
 
         ss >> instruction;
         if(instructionMap.find(instruction) == instructionMap.end()){
@@ -205,7 +205,7 @@ public:
 
             if (dataMode){
                 if (word == ".word"){
-                    int val;
+                    long long val;
                     while(ss>>val){
                         dataSegment.push_back({dataAddress, to_string(val)});
                         dataAddress += 4;
@@ -214,7 +214,7 @@ public:
                 else if (word == ".byte"){
                     string token;
                     while (ss >> token) {
-                    int val;
+                    long long val;
                     if (token[0] == '\'' && token.size() == 3 && token[2] == '\'') { 
                         // Character case
                         val = token[1];
@@ -237,7 +237,7 @@ public:
                 }   
                 }
                 else if (word == ".double"){
-                    int val;
+                    long long val;
                     ss>>val;
                     while(val){
                         dataSegment.push_back({dataAddress, to_string(val)});
@@ -245,23 +245,24 @@ public:
                         ss>>val;
                     }   
                 }
-                else if (word == ".asciiz"){
+                else if (word == ".asciiz") {
                     string str;
-                    ss>>str;
-                    if (str.size() >= 2 && str.front() == '"' && str.back() == '"') {
-                        str = str.substr(1, str.size() - 2);
+                    getline(ss, str);
+                    if (str.size() >= 2 && str[1] == '"' && str.back() == '"') {
+                        for (int i=2;i<str.size()-1;i++) {
+                            dataSegment.push_back({dataAddress, to_string(str[i])});
+                            dataAddress++;
+                        }
+                        // Null terminator
+                        dataSegment.push_back({dataAddress, "0"});
+                        dataAddress++;
                     } else {
                         cout << "Invalid .asciiz format. Must be enclosed in double quotes." << endl;
                         continue;
                     }
-                    
-                    for (char c : str) {
-                        dataSegment.push_back({dataAddress, std::to_string(c)});
-                        dataAddress++;
-                    }
-                    dataSegment.push_back({dataAddress, "0"}); // Null terminator
-                    dataAddress++;
+                
                 }
+                
                 continue;
 
             }
@@ -296,6 +297,19 @@ int main(){
     
     assembler.parseFile(inputFile, outputFile);
 
+    //print all the unoreded maps labels, dataLabels and dataSegment
+    // cout<<"Labels: "<<endl;
+    // for(auto it:labels){
+    //     cout<<it.first<<" "<<it.second<<endl;
+    // }
+    // cout<<"Data Labels: "<<endl;
+    // for(auto it:dataLabels){
+    //     cout<<it.first<<" "<<it.second<<endl;
+    // }
+    // cout<<"Data Segment: "<<endl;
+    // for(auto it:dataSegment){
+    //     cout<<it.first<<" "<<(char)stoi(it.second)<<endl;
+    // }
     inputFile.close();
     outputFile.close();
     return 0;
