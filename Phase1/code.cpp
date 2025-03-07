@@ -162,7 +162,7 @@ public:
         string rd;
         string rs1;
         string rs2;
-        long long immediate;
+        long long immediate=0;
 
         ss >> instruction;
         if(instructionMap.find(instruction) == instructionMap.end()){
@@ -178,6 +178,14 @@ public:
         } 
         else if (instr.type == "I") {
             ss >> rd >> rs1 >> immediate;
+            // cout<<immediate;
+            if(immediate==0){
+                // cout<<"hi iam in";
+                //rs1 have format of offset(rs1)
+                //extract immediate and rs1 from rs1
+                immediate = stoi(rs1.substr(0, rs1.find('(')));
+                rs1 = rs1.substr(rs1.find('(')+1);
+            }
             rd.pop_back();
             rs1.pop_back();
             return generateIType(instr, rd, rs1, immediate);
@@ -196,7 +204,7 @@ public:
             }
             rs1.pop_back();
             rs2.pop_back();
-            long long offset = (labels[label] - currentPC)/2;
+            long long offset = (labels[label] - currentPC);
             return generateSBType(instr, rs1, rs2, offset);
         } 
         else if (instr.type == "U") {
@@ -211,7 +219,7 @@ public:
                 return "Label not found";
             }
             rd.pop_back();
-            long long offset = (labels[label] - currentPC)/2;
+            long long offset = (labels[label] - currentPC);
             return generateUJType(instr, rd,offset);
         } 
         else {
