@@ -177,22 +177,32 @@ public:
             return generateRType(instr, rd, rs1, rs2);
         } 
         else if (instr.type == "I") {
-            ss >> rd >> rs1 >> immediate;
-            // cout<<immediate;
-            if(immediate==0){
-                // cout<<"hi iam in";
-                //rs1 have format of offset(rs1)
-                //extract immediate and rs1 from rs1
-                immediate = stoi(rs1.substr(0, rs1.find('(')));
-                rs1 = rs1.substr(rs1.find('(')+1);
+            string offsetS;
+            ss >> rd >> offsetS >> rs1;
+            if(rs1.size()==0){
+                immediate = stoi(offsetS.substr(0, offsetS.find('(')));
+                rs1 = offsetS.substr(offsetS.find('(')+1);
+                rs1.pop_back();
+            }
+            else{
+                offsetS.pop_back();
+                immediate = stoi(offsetS);
             }
             rd.pop_back();
-            rs1.pop_back();
             return generateIType(instr, rd, rs1, immediate);
         } 
         else if (instr.type == "S") {
-            ss >> rs1 >> rs2 >> immediate;
-            rs1.pop_back();
+            string offsetS;
+            ss >> rs2 >> offsetS >> rs1;
+            if(rs1.size()==0){
+                immediate = stoi(offsetS.substr(0, offsetS.find('(')));
+                rs1 = offsetS.substr(offsetS.find('(')+1);
+                rs1.pop_back();
+            }
+            else{
+                offsetS.pop_back();
+                immediate = stoi(offsetS);
+            }
             rs2.pop_back();
             return generateSType(instr, rs1, rs2, immediate);
         } 
