@@ -337,6 +337,12 @@ public:
             outputFile<<binaryToHex(bitset<32>(currentPC).to_string()) <<" " << binaryToHex(machineCode) <<" "<< line <<" #"<<machineCode<<endl;
             currentPC += 4;
         }
+        outputFile<<endl;
+        outputFile<<endl;
+        outputFile<<"#Data Segment"<<endl;
+        for(auto it:dataSegment){
+            outputFile<<binaryToHex(bitset<32>(it.first).to_string()) <<" " << binaryToHex(bitset<32>(stoi(it.second)).to_string()) <<" "<< it.second <<endl;
+        }
     }
 };
 
