@@ -5,9 +5,9 @@ The **Phase-I** of RISC-V ASSEMBLER is a C++ program designed to convert RISC-V 
 ---
 
 ## Team Details
-- **[Aadit Mahajan]**
-- **[Aksh Sihag]**
-- **[Rahul Goyal]**
+- **Aadit Mahajan(2023CSB1091)**
+- **Aksh Sihag(2023CSB1097)**
+- **Rahul Goyal(2023CSB1150)**
 
 ---
 
@@ -38,6 +38,10 @@ Run the executable with the following command:
     - Execute the program to convert assembly to machine code.
 3. **View Output**
     - The machine code is saved in `output.mc`.
+4. **Code Specific Instructions**
+    - Full-line comments are permitted, while inline comments are only allowed after instructions, provided they are properly spaced and not continuous with the instruction.
+    - Each register or immediate value should be preceded by a space and followed by a comma, unless it is the last one.
+    - Label specific instructions are given below in [Label definition rule](#label-definition-rule)
 
 ## Supported Instructions
 
