@@ -148,7 +148,7 @@ private:
             return "Immediate out of bound";
         }
 
-        return bitset<20>((immediate>>12)&0xFFFFF).to_string() + registerMap[rd] + instr.opcode;
+        return bitset<20>(immediate).to_string() + registerMap.at(rd) + instr.opcode;
     };
     string generateUJType(const Instruction &instr, const string &rd, const long long offset){
         string imm = bitset<21>(offset).to_string();
@@ -226,8 +226,12 @@ public:
             return generateSBType(instr, rs1, rs2, offset);
         } 
         else if (instr.type == "U") {
-            ss >> rd >> immediate;  
+            string offset;
+            ss >> rd >> offset;
+            offset = offset.substr(2);
+            long long immediate = stoll(offset, nullptr, 16);
             rd.pop_back();
+            immediate &= 0xFFFFF;
             return generateUType(instr, rd, immediate);
         } 
         else if (instr.type == "UJ") {
@@ -276,11 +280,47 @@ public:
 
             if (dataMode){
                 if (word == ".word"){
-                    long long val;
-                    while(ss>>val){
+                    string token;
+                    while(ss>>token){
+                        int val;
+                        if (token[0] == '\'' && token.size() == 3 && token[2] == '\'') { 
+                            // Character case
+                            val = token[1];
+                        }else {
+                            try {
+                                val = stoi(token);
+                            } catch (...) {
+                                cout << "Invalid .byte value: " << token << endl;
+                                break;
+                            }
+                        }
+
                         dataSegment.push_back({dataAddress, to_string(val)});
                         dataAddress += 4;
                     }   
+                }
+                else if (word == ".half"){
+                    string token;
+                    while(ss>>token){
+                        int val;
+                        if (token[0] == '\'' && token.size() == 3 && token[2] == '\'') { 
+                            // Character case
+                            val = token[1];
+                        }else {
+                            try {
+                                val = stoi(token);
+                            } catch (...) {
+                                cout << "Invalid .byte value: " << token << endl;
+                                break;
+                            }
+                        }
+                        if (val < -32768 || val > 32767) {
+                            cout << "Value out of bound for .byte: " << val << endl;
+                            break;
+                        }
+                        dataSegment.push_back({dataAddress, to_string(val)});
+                        dataAddress += 2;
+                    }
                 }
                 else if (word == ".byte"){
                     string token;
@@ -308,13 +348,24 @@ public:
                 }   
                 }
                 else if (word == ".double"){
-                    long long val;
-                    ss>>val;
-                    while(val){
+                    string token;
+                    while(ss>>token){
+                        long long val;
+                        if (token[0] == '\'' && token.size() == 3 && token[2] == '\'') { 
+                            // Character case
+                            val = token[1];
+                        }else {
+                            try {
+                                val = stoll(token);
+                            } catch (...) {
+                                cout << "Invalid .byte value: " << token << endl;
+                                break;
+                            }
+                        }
+
                         dataSegment.push_back({dataAddress, to_string(val)});
                         dataAddress += 8;
-                        ss>>val;
-                    }   
+                    }      
                 }
                 else if (word == ".asciiz") {
                     string str;
