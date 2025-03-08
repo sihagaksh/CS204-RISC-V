@@ -18,7 +18,7 @@ unordered_map <string , long long> labels;
 unordered_map <string , long long> dataLabels;
 
 //vector to store all the variable of data section
-vector <pair <long long, string>> dataSegment;
+vector <pair <long long, string> > dataSegment;
 
 //struct to hold the instruction details
 struct Instruction{
@@ -147,7 +147,8 @@ private:
         if(immediate < 0 || immediate > 1048575){
             return "Immediate out of bound";
         }
-        return bitset<20>(immediate).to_string() + registerMap[rd] + instr.opcode;
+
+        return bitset<20>((immediate>>12)&0xFFFFF).to_string() + registerMap[rd] + instr.opcode;
     };
     string generateUJType(const Instruction &instr, const string &rd, const long long offset){
         string imm = bitset<21>(offset).to_string();
@@ -177,20 +178,27 @@ public:
             return generateRType(instr, rd, rs1, rs2);
         } 
         else if (instr.type == "I") {
-            string offsetS;
-            ss >> rd >> offsetS >> rs1;
-            if(rs1.size()==0){
-                immediate = stoi(offsetS.substr(0, offsetS.find('(')));
-                rs1 = offsetS.substr(offsetS.find('(')+1);
+           if(instruction=="lw" || instruction=="lh" || instruction=="lb" || instruction=="ld"){
+               string offsetS;
+               ss >> rd >> offsetS >> rs1;
+               if(rs1.size()==0){
+                   immediate = stoi(offsetS.substr(0, offsetS.find('(')));
+                   rs1 = offsetS.substr(offsetS.find('(')+1);
+                   rs1.pop_back();
+               }
+               else{
+                   offsetS.pop_back();
+                   immediate = stoi(offsetS);
+               }
+               rd.pop_back();
+               return generateIType(instr, rd, rs1, immediate);}
+          else{ 
+                ss >> rd >> rs1 >> immediate;
+                rd.pop_back();
                 rs1.pop_back();
-            }
-            else{
-                offsetS.pop_back();
-                immediate = stoi(offsetS);
-            }
-            rd.pop_back();
-            return generateIType(instr, rd, rs1, immediate);
-        } 
+                return generateIType(instr, rd, rs1, immediate);
+
+        } }
         else if (instr.type == "S") {
             string offsetS;
             ss >> rs2 >> offsetS >> rs1;
@@ -218,7 +226,7 @@ public:
             return generateSBType(instr, rs1, rs2, offset);
         } 
         else if (instr.type == "U") {
-            ss >> rd >> immediate;
+            ss >> rd >> immediate;  
             rd.pop_back();
             return generateUType(instr, rd, immediate);
         } 
