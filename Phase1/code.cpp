@@ -228,8 +228,13 @@ public:
         else if (instr.type == "U") {
             string offset;
             ss >> rd >> offset;
+            if(offset[0] == '0' && offset[1] == 'x'){
             offset = offset.substr(2);
             long long immediate = stoll(offset, nullptr, 16);
+            }
+            else{
+                immediate = stoll(offset);
+            }
             rd.pop_back();
             immediate &= 0xFFFFF;
             return generateUType(instr, rd, immediate);
